@@ -54,7 +54,10 @@ const userSchema = mongoose.Schema(
 			enum: ['male', 'female', 'other'],
 			default: null
 		},
-		location:  { type: String, default: null },
+		location:  { 
+			city: { type: String, default: null },
+			state: { type: String, default: null }
+		 },
 		isProfileCompleted: { type: Boolean, default: false },
 		// notifySetting: {
 		// 	type: {

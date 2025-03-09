@@ -25,11 +25,14 @@ const profileController = {
         }
 
         // Validate location
-        if (!location.coordinates || 
-            !Array.isArray(location.coordinates) || 
-            location.coordinates.length !== 2 ||
-            !location.address) {
-            return res.BadRequest({}, 'Invalid location format');
+        if (!location){
+            return res.BadRequest({}, 'Location is required');
+            let locationCity = location.split(',')[0];
+            let locationState = location.split(',')[1];
+            location = {
+                city: locationCity,
+                state: locationState
+            }
         }
 
         try {
@@ -41,9 +44,8 @@ const profileController = {
                         birthday: birthdayDate,
                         gender,
                         location: {
-                            type: 'Point',
-                            coordinates: location.coordinates,
-                            address: location.address
+                            city: location.split(',')[0],
+                            state: location.split(',')[1]
                         },
                         isProfileCompleted: true
                     }
