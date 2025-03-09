@@ -42,6 +42,7 @@ app.set('view engine', 'ejs');
 app.set('views','./views');
 
 app.use(express.static('public'));
+app.set("trust proxy", 1);
 
 app.use((req, res, next) => {
 	res.setHeader("Access-Control-Allow-Origin", "*");
