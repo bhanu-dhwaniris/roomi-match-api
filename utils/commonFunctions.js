@@ -75,7 +75,7 @@ const commonFunctions = {
 			nickname: user.nickname,
 			birthday: user.birthday,
 			gender: user.gender,
-			location: `${user.location?.city}, ${user.location?.state}`,
+			address: `${user.address?.city}, ${user.address?.state}`,
 			isVerified: user.isVerified,
 			isEmailVerified: user.isEmailVerified,
 			isProfileCompleted: user.isProfileCompleted,

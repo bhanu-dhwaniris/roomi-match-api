@@ -54,7 +54,7 @@ const userSchema = mongoose.Schema(
 			enum: ['male', 'female', 'other'],
 			default: null
 		},
-		location:  { 
+		address:  { 
 			city: { type: String, default: null },
 			state: { type: String, default: null }
 		 },
@@ -71,8 +71,7 @@ const userSchema = mongoose.Schema(
 	{ timestamps: true }
 );
 
-// Add index for geolocation queries
-userSchema.index({ location: '2dsphere' });
+
 
 userSchema.methods.canResendOTP = function() {
 	const now = new Date();

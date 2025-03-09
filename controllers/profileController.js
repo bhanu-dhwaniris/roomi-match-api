@@ -3,11 +3,11 @@ const { catchAsync, formatUserResponse } = require('../utils/commonFunctions');
 
 const profileController = {
     updateProfile: catchAsync(async (req, res) => {
-        const { nickname, birthday, gender, location } = req.body;
+        const { nickname, birthday, gender, address } = req.body;
         const userId = req.user._id;
 
         // Validate required fields
-        if (!nickname || !birthday || !gender || !location) {
+        if (!nickname || !birthday || !gender || !address) {
             return res.BadRequest({}, 'All fields are required');
         }
 
@@ -24,16 +24,6 @@ const profileController = {
             return res.BadRequest({}, 'Invalid birthday format');
         }
 
-        // Validate location
-        if (!location){
-            return res.BadRequest({}, 'Location is required');
-            let locationCity = location.split(',')[0];
-            let locationState = location.split(',')[1];
-            location = {
-                city: locationCity,
-                state: locationState
-            }
-        }
 
         try {
             const updatedUser = await User.findByIdAndUpdate(
@@ -43,9 +33,9 @@ const profileController = {
                         nickname,
                         birthday: birthdayDate,
                         gender,
-                        location: {
-                            city: location.split(',')[0],
-                            state: location.split(',')[1]
+                        address: {
+                            city: address.split(',')[0],
+                            state: address.split(',')[1]
                         },
                         isProfileCompleted: true
                     }

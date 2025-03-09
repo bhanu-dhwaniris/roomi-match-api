@@ -171,7 +171,7 @@ const questionController = {
                         photo: '$userDetails.photo',
                         gender: '$userDetails.gender',
                         nickname: '$userDetails.nickname',
-                        location: '$userDetails.location'
+                        address: '$userDetails.address'
                     },
                     answers: '$answerMap'
                 }
