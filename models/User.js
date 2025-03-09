@@ -54,18 +54,7 @@ const userSchema = mongoose.Schema(
 			enum: ['male', 'female', 'other'],
 			default: null
 		},
-		location: {
-			type: {
-				type: String,
-				enum: ['Point'],
-				default: 'Point'
-			},
-			coordinates: {
-				type: [Number],
-				default: null
-			},
-			address: { type: String, default: null }
-		},
+		location:  { type: String, default: null },
 		isProfileCompleted: { type: Boolean, default: false },
 		// notifySetting: {
 		// 	type: {
