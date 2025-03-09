@@ -32,7 +32,6 @@ const commonFunctions = {
 	// Password comparison
 	comparePassword: async (password, hashedPassword) => {
 		try {
-			console.log("hashpassword",this.hashPassword(password));
 			return await bcrypt.compare(password, hashedPassword);
 		} catch (error) {
 			console.error("Password comparison error:", error);
