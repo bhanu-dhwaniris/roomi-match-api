@@ -59,6 +59,7 @@ const userSchema = mongoose.Schema(
 			state: { type: String, default: null }
 		 },
 		isProfileCompleted: { type: Boolean, default: false },
+		traits:{type: [mongoose.Schema.Types.ObjectId], ref: 'Personality'}
 		// notifySetting: {
 		// 	type: {
 		// 		status: { type: [String], default: [] },
