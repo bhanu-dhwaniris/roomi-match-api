@@ -7,6 +7,7 @@ const Match = require('../models/Match');
 const Notification = require('../models/Notification');
 const notificationService = require('../utils/notifications');
 const { NOTIFICATION_TYPES } = require('../utils/constants');
+const { Personality } = require('../models');
 
 const questionController = {
     getQuestions: catchAsync(async (req, res) => {
@@ -27,6 +28,10 @@ const questionController = {
             },
             'Questions fetched successfully'
         );
+    }),
+    getPersonality: catchAsync(async (req, res) => {
+        const personality = await Personality.find({});
+        return res.Ok( personality , 'Personality fetched successfully');
     }),
 
     submitResponses: catchAsync(async (req, res) => {

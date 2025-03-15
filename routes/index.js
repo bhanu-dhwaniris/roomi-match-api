@@ -24,6 +24,7 @@ router.get('/questions', auth, questionController.getQuestions);
 router.post('/questions/responses', auth, questionController.submitResponses);
 router.get('/questions/responses', auth, questionController.getUserResponses);
 router.get('/matches', auth, questionController.findMatches);
+router.get('/personality', auth, questionController.getPersonality);
 
 // Notification routes
 router.get('/notifications', auth, notificationController.getNotifications);
