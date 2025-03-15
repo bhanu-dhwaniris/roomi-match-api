@@ -3,7 +3,7 @@ const { catchAsync, formatUserResponse } = require('../utils/commonFunctions');
 
 const profileController = {
     updateProfile: catchAsync(async (req, res) => {
-        const { nickname, birthday, gender, address } = req.body;
+        const { nickname, birthday, gender, address, traits } = req.body;
         const userId = req.user._id;
 
         // Validate required fields
@@ -18,7 +18,6 @@ const profileController = {
 
         // Validate birthday
         const birthdayDate = new Date(birthday);
-        const today = new Date();
         
         if (isNaN(birthdayDate.getTime())) {
             return res.BadRequest({}, 'Invalid birthday format');
@@ -37,6 +36,7 @@ const profileController = {
                             city: address.split(',')[0],
                             state: address.split(',')[1]
                         },
+                        traits,
                         isProfileCompleted: true
                     }
                 },
