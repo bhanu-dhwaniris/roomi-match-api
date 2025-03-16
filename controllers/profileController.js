@@ -6,40 +6,33 @@ const profileController = {
         const { nickname, birthday, gender, address, traits } = req.body;
         const userId = req.user._id;
 
-        // Validate required fields
-        if (!nickname || !birthday || !gender || !address) {
-            return res.BadRequest({}, 'All fields are required');
-        }
-
-        // Validate gender
-        if (!['male', 'female', 'other'].includes(gender)) {
+        // Validate gender if provided
+        if (gender && !['male', 'female', 'other'].includes(gender)) {
             return res.BadRequest({}, 'Invalid gender value');
         }
 
-        // Validate birthday
-        const birthdayDate = new Date(birthday);
-        
-        if (isNaN(birthdayDate.getTime())) {
-            return res.BadRequest({}, 'Invalid birthday format');
+        // Validate birthday if provided
+        let birthdayDate;
+        if (birthday) {
+            birthdayDate = new Date(birthday);
+            if (isNaN(birthdayDate.getTime())) {
+                return res.BadRequest({}, 'Invalid birthday format');
+            }
         }
 
-
         try {
+            const updateData = {
+                ...(nickname && { nickname }),
+                ...(birthday && { birthday: birthdayDate }),
+                ...(gender && { gender }),
+                ...(address && { address: { city: address.split(',')[0], state: address.split(',')[1] } }),
+                ...(traits && { traits }),
+                isProfileCompleted: true
+            };
+
             const updatedUser = await User.findByIdAndUpdate(
                 userId,
-                {
-                    $set: {
-                        nickname,
-                        birthday: birthdayDate,
-                        gender,
-                        address: {
-                            city: address.split(',')[0],
-                            state: address.split(',')[1]
-                        },
-                        traits,
-                        isProfileCompleted: true
-                    }
-                },
+                { $set: updateData },
                 { new: true }
             );
 
