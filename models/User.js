@@ -35,6 +35,7 @@ const userSchema = mongoose.Schema(
 		otherDetails: { type: Object, default: null },
 		isVerified: { type: Boolean, default: true },
 		isDeleted: { type: Boolean, default: false },
+		lastActive: { type: Date, default: null },
 		// isVerifiedEmail: { type: Boolean, default: false },
 		createdAt: { type: Date, default: Date.now },
 		modifiedAt: { type: Date, default: Date.now },

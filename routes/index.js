@@ -18,7 +18,8 @@ router.post('/auth/google', authController.googleLogin);
 // Profile routes
 router.put('/user/profile', auth, profileController.updateProfile);
 router.get('/user/profile', auth, profileController.getProfile);
-
+router.get('/user/matches', auth, userController.getMatches);
+router.put('/user/last-active', auth, userController.updateLastActive);
 // Question routes
 router.get('/questions', auth, questionController.getQuestions);
 router.post('/questions/responses', auth, questionController.submitResponses);
