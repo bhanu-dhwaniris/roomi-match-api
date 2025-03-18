@@ -60,7 +60,17 @@ const userSchema = mongoose.Schema(
 			state: { type: String, default: null }
 		 },
 		isProfileCompleted: { type: Boolean, default: false },
-		traits:{type: [mongoose.Schema.Types.ObjectId], ref: 'Personality'}
+		traits:{type: [mongoose.Schema.Types.ObjectId], ref: 'Personality'},
+		connections: [{
+			user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+			status: { 
+				type: String, 
+				enum: ['pending', 'accepted', 'blocked'],
+				default: 'pending'
+			},
+			initiator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+			createdAt: { type: Date, default: Date.now }
+		}]
 		// notifySetting: {
 		// 	type: {
 		// 		status: { type: [String], default: [] },

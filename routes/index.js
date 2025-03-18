@@ -7,6 +7,7 @@ const questionController = require('../controllers/questionController');
 const notificationController = require('../controllers/notificationController');
 const chatController = require('../controllers/chatController');
 const userController = require('../controllers/userController');
+const userRoutes = require('./userRoutes');
 
 // Auth routes
 router.post('/auth/signup', authController.signup);
@@ -20,6 +21,7 @@ router.put('/user/profile', auth, profileController.updateProfile);
 router.get('/user/profile', auth, profileController.getProfile);
 router.get('/user/matches', auth, userController.getMatches);
 router.put('/user/last-active', auth, userController.updateLastActive);
+router.use('/user', userRoutes);
 // Question routes
 router.get('/questions', auth, questionController.getQuestions);
 router.post('/questions/responses', auth, questionController.submitResponses);
