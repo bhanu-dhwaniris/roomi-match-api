@@ -61,6 +61,18 @@ const userController = {
         );
     }),
 
+    removeMatch: catchAsync(async (req, res) => {
+        const userId = req.user._id;
+        const matchId = req.params.userId;
+        
+        // Add the matchId to the user's skippedMatches array
+        await User.findByIdAndUpdate(userId, {
+            $addToSet: { skippedMatches: matchId }
+        });
+        
+        return res.Ok({}, 'Match removed successfully');
+    }),
+
     updateLastActive: catchAsync(async (req, res) => {
         const userId = req.user._id;
         await User.findByIdAndUpdate(userId, { lastActive: new Date() });
