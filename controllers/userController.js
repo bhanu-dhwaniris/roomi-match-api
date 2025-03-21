@@ -176,13 +176,16 @@ const userController = {
         const user = await User.findById(userId)
             .populate({
                 path: 'connections.user',
-                match: { 'connections.status': status },
+                match: { 
+                    'connections.status': status,
+                    ...(status === 'pending' && { 'connections.initiator': { $ne: userId } }) 
+                },
                 select: 'name nickname photo lastActive'
             })
             .slice('connections', [skip, limit]);
 
         const connections = user.connections
-            .filter(conn => conn.status === status)
+            .filter(conn => conn.status === status && (status !== 'pending' || conn.initiator.toString() !== userId.toString()))
             .map(conn => ({
                 id: conn.user._id,
                 name: conn.user.name,
