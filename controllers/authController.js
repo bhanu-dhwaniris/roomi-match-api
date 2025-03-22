@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
 const { 
     hashPassword, 
     comparePassword, 
@@ -250,7 +251,6 @@ const authController = {
         }
 
         try {
-            // Verify Google token
             const ticket = await googleClient.verifyIdToken({
                 idToken,
                 audience: process.env.GOOGLE_CLIENT_ID
@@ -258,25 +258,20 @@ const authController = {
 
             const { email, name, picture } = ticket.getPayload();
 
-            // Find or create user
             let user = await User.findOne({ email, isDeleted: false });
             
             if (!user) {
-                try {
-                    user = await User.create({
-                        name,
-                        email,
-                        role: 'user',
-                        photo: picture,
-                        signedUpUser: true,
-                        isVerified: true
-                    });
-                } catch (error) {
-                    return res.DbError({}, 'Error creating user account');
-                }
+                user = await User.create({
+                    name,
+                    email,
+                    role: 'user',
+                    photo: picture,
+                    signedUpUser: true,
+                    isVerified: true,
+                    isEmailVerified: true
+                });
             }
 
-            // Generate token
             const token = await generateToken({ userId: user._id });
 
             return res.Ok(
@@ -287,10 +282,60 @@ const authController = {
                 'Google login successful'
             );
         } catch (error) {
+            console.error('Google login error:', error);
             if (error.message.includes('Token used too late')) {
                 return res.BadRequest({}, 'Google token has expired');
             }
             return res.InternalError({}, 'Error processing Google login');
+        }
+    }),
+
+    facebookLogin: catchAsync(async (req, res) => {
+        const { accessToken } = req.body;
+
+        if (!accessToken) {
+            return res.BadRequest({}, 'Facebook access token is required');
+        }
+
+        try {
+            // Verify Facebook token and get user data
+            const response = await axios.get(
+                `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${accessToken}`
+            );
+
+            const { email, name, picture } = response.data;
+
+            if (!email) {
+                return res.BadRequest({}, 'Email is required from Facebook');
+            }
+
+            // Find or create user
+            let user = await User.findOne({ email, isDeleted: false });
+            
+            if (!user) {
+                user = await User.create({
+                    name,
+                    email,
+                    role: 'user',
+                    photo: picture?.data?.url,
+                    signedUpUser: true,
+                    isVerified: true,
+                    isEmailVerified: true
+                });
+            }
+
+            const token = await generateToken({ userId: user._id });
+
+            return res.Ok(
+                {
+                    token,
+                    user: formatUserResponse(user)
+                },
+                'Facebook login successful'
+            );
+        } catch (error) {
+            console.error('Facebook login error:', error);
+            return res.InternalError({}, 'Error processing Facebook login');
         }
     }),
 
