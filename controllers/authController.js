@@ -15,6 +15,7 @@ const {
     sendOTPEmail,
     isValidOTP
 } = require('../utils/commonFunctions');
+const { Roles } = require('../configs');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -264,7 +265,7 @@ const authController = {
                 user = await User.create({
                     name,
                     email,
-                    role: 'user',
+                    role: 'USER',
                     photo: picture,
                     signedUpUser: true,
                     isVerified: true,
