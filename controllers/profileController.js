@@ -25,7 +25,7 @@ const profileController = {
                 ...(nickname && { nickname }),
                 ...(birthday && { birthday: birthdayDate }),
                 ...(gender && { gender }),
-                ...(address && { address: { city: address.split(',')[0], state: address.split(',')[1] } }),
+                ...(address && { address: { city: address.split(',')[0].trim(), state: address.split(',')[1].trim() } }),
                 ...(traits && { traits }),
                 isProfileCompleted: true
             };
