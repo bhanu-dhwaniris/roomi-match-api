@@ -26,11 +26,12 @@ app.use((req, res, next) => {
 });
 
 app.use(log("dev"));
-const urls = process.env.ALLOWED_DOMAINS || "http://localhost:3000";
 
+
+// Allow all origins in production
 app.use(
 	cors({
-		origin: urls.split(","),
+		origin: true, // Allow all origins
 		optionsSuccessStatus: 200,
 		credentials: true,
 		allowedHeaders: ["Content-Type", "Authorization"],
@@ -47,12 +48,12 @@ app.set('views','./views');
 app.use(express.static('public'));
 app.set("trust proxy", 1);
 
+// Security headers
 app.use((req, res, next) => {
 	res.setHeader("Access-Control-Allow-Origin", "*");
-	res.setHeader("Access-Control-Allow-Methods", "DELETE", "GET, POST, PUT");
-	res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+	res.setHeader("Access-Control-Allow-Methods", "DELETE, GET, POST, PUT, OPTIONS");
+	res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 	res.setHeader("Access-Control-Allow-Credentials", true);
-	// res.setHeader("Content-Security-Policy", csp);
 	res.setHeader("X-Content-Type-Options", "nosniff");
 	res.setHeader("X-Frame-Options", "SAMEORIGIN");
 	res.setHeader("X-XSS-Protection", "1; mode=block");
