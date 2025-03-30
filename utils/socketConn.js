@@ -27,6 +27,7 @@ exports.createSocket = async (server) => {
 
 			io.use(async (socket, next) => {
 				try {
+					console.log("socket.handshake.query", socket.handshake.query);
 					const userId = socket.handshake.query.userId;
 					if (!userId) {
 						return next(new Error('User ID is required'));
