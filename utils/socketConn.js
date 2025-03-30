@@ -10,6 +10,7 @@ const { NOTIFICATION_TYPES } = require('./constants');
 exports.createSocket = async (server) => {
 	return new Promise((resolve, reject) => {
 		try {
+			console.log("Creating socket server");
 			const io = new Server(server, {
 				cors: {
 					origin: true, // Allow all origins
