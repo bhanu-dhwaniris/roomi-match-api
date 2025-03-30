@@ -31,7 +31,10 @@ const urls = process.env.ALLOWED_DOMAINS || "http://localhost:3000";
 app.use(
 	cors({
 		origin: urls.split(","),
-		optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+		optionsSuccessStatus: 200,
+		credentials: true,
+		allowedHeaders: ["Content-Type", "Authorization"],
+		methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 	})
 );
 

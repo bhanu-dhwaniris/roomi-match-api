@@ -15,10 +15,14 @@ exports.createSocket = async (server) => {
 					origin: process.env.CLIENT_URL || "http://localhost:3000",
 					methods: ["GET", "POST"],
 					credentials: true,
-					transports: ["websocket", "polling"]
+					transports: ["websocket", "polling"],
+					allowedHeaders: ["Content-Type", "Authorization"]
 				},
 				pingTimeout: 60000,
-				pingInterval: 25000
+				pingInterval: 25000,
+				path: '/chat',
+				allowEIO3: true,
+				allowUpgrades: true
 			});
 
 			io.use(async (socket, next) => {
