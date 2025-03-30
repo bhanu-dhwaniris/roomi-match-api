@@ -21,13 +21,13 @@ exports.createSocket = async (server) => {
 				pingInterval: 25000
 			});
 
-
 			io.use(async (socket, next) => {
 				try {
-					const token = socket.handshake.auth.token;
-					if (!token) {
-						return next(new Error('Authentication error'));
+					const userId = socket.handshake.query.userId;
+					if (!userId) {
+						return next(new Error('User ID is required'));
 					}
+					socket.userId = userId;
 					next();
 				} catch (error) {
 					next(new Error('Authentication error'));
@@ -35,156 +35,49 @@ exports.createSocket = async (server) => {
 			});
 
 			io.on("connection", async (socket) => {
-				console.log(`Client connected: ${socket.id}`);
+				console.log(`Client connected: ${socket.id} for user: ${socket.userId}`);
 
-				socket.on("activeUser", async (data) => {
-					try {
-						const { userId } = data;
-						if (!userId) return;
+				// Join user's personal room
+				socket.join(socket.userId);
 
-						const userData = {
-							userId,
+				// Update active user status
+				await activeUser.updateOne(
+					{ userId: socket.userId },
+					{ 
+						$set: {
 							socketId: socket.id,
 							isLoggedin: true,
 							lastActive: new Date()
-						};
-
-						await activeUser.updateOne(
-							{ userId },
-							{ $set: userData },
-							{ upsert: true }
-						);
-
-						socket.join(userId.toString());
-
-						const [notifications, matches] = await Promise.all([
-							Notification.countDocuments({
-								isRead: false,
-								userId
-							}),
-							Match.find({
-								users: userId,
-								status: 'pending'
-							})
-						]);
-
-						socket.emit("counts", {
-							notifications,
-							pendingMatches: matches.length
-						});
-					} catch (error) {
-						console.error("Active user error:", error);
-					}
-				});
-
-				socket.on("acceptMatch", async (data) => {
-					try {
-						const { matchId, userId } = data;
-						const match = await Match.findById(matchId);
-						
-						if (!match) return;
-
-						match.acceptedBy.addToSet(userId);
-						
-						if (match.acceptedBy.length === 2) {
-							match.status = 'accepted';
-							match.chatEnabled = true;
-
-							// Create database notifications for both users
-							const notifications = match.users.map(user => ({
-								userId: user,
-								type: 'match',
-								title: 'Match Accepted!',
-								message: 'You can now chat with your match!',
-								data: {
-									matchId: match._id,
-									userId: user === userId ? match.users.find(u => u !== userId) : userId
-								}
-							}));
-
-							await Notification.insertMany(notifications);
-
-							// Send real-time notifications
-							for (const user of match.users) {
-								io.to(user.toString()).emit("matchAccepted", {
-									matchId,
-									notification: notifications.find(n => n.userId.equals(user))
-								});
-							}
-
-							// Send push notifications to both users
-							const users = await User.find({ _id: { $in: match.users } });
-							for (const user of users) {
-								if (user.fcmTokens?.length > 0) {
-									await sendPushNotification(
-										user.fcmTokens.map(t => t.token),
-										'Match Accepted!',
-										'You can now chat with your match!',
-										{
-											type: 'match_accepted',
-											matchId: match._id.toString()
-										}
-									);
-								}
-							}
-
-							await notificationService.sendNotification(
-								match.users,
-								'Match Complete!',
-								'You can now chat with your match!',
-								{
-									type: NOTIFICATION_TYPES.MATCH_COMPLETE,
-									matchId: match._id.toString()
-								}
-							);
-						} else {
-							// Notify other user that this user has accepted
-							const otherUser = match.users.find(u => u.toString() !== userId.toString());
-							
-							await Notification.create({
-								userId: otherUser,
-								type: 'match',
-								title: 'Match Update',
-								message: 'Someone accepted your match! Accept back to start chatting.',
-								data: {
-									matchId: match._id,
-									userId: userId
-								}
-							});
-
-							io.to(otherUser.toString()).emit("matchUpdateReceived", {
-								matchId,
-								status: 'pending_acceptance'
-							});
-
-							// Send push notification to other user
-							if (otherUser.fcmTokens?.length > 0) {
-								await sendPushNotification(
-									otherUser.fcmTokens.map(t => t.token),
-									'Match Update',
-									'Someone accepted your match! Accept back to start chatting.',
-									{
-										type: NOTIFICATION_TYPES.MATCH_ACCEPTED,
-										matchId: match._id.toString()
-									}
-								);
-							}
 						}
+					},
+					{ upsert: true }
+				);
 
-						await match.save();
-					} catch (error) {
-						console.error("Match acceptance error:", error);
-					}
+				// Get initial counts
+				const [notifications, matches] = await Promise.all([
+					Notification.countDocuments({
+						isRead: false,
+						userId: socket.userId
+					}),
+					Match.find({
+						users: socket.userId,
+						status: 'pending'
+					})
+				]);
+
+				socket.emit("counts", {
+					notifications,
+					pendingMatches: matches.length
 				});
 
-				socket.on("sendMessage", async (data) => {
+				// Handle new messages
+				socket.on("message", async (data) => {
 					try {
-						const { matchId, text, senderId, clientMessageId } = data;
+						const { matchId, content, senderId } = data;
 						const match = await Match.findById(matchId);
 
 						if (!match || !match.chatEnabled) {
 							socket.emit("messageStatus", {
-								clientMessageId,
 								status: 'failed',
 								error: 'Chat not enabled'
 							});
@@ -194,38 +87,31 @@ exports.createSocket = async (server) => {
 						const message = await Message.create({
 							matchId,
 							sender: senderId,
-							text,
+							content,
 							readBy: [senderId],
-							clientMessageId,
 							status: 'sent'
 						});
 
+						// Update match's last message
 						match.lastMessage = {
-							text,
+							content,
 							sender: senderId,
 							timestamp: new Date()
 						};
 						await match.save();
 
-						// Confirm to sender
-						socket.emit("messageStatus", {
-							clientMessageId,
-							messageId: message._id,
-							status: 'sent',
-							timestamp: message.createdAt
-						});
-
-						// Send to other users
+						// Emit to all users in the match
 						match.users.forEach(userId => {
-							if (userId.toString() !== senderId.toString()) {
-								io.to(userId.toString()).emit("newMessage", {
-									matchId,
-									message: {
-										...message.toObject(),
-										sender: senderId
-									}
-								});
-							}
+							io.to(userId.toString()).emit("message", {
+								type: "message",
+								data: {
+									id: message._id,
+									content: message.content,
+									senderId: message.sender,
+									timestamp: message.createdAt,
+									matchId: message.matchId
+								}
+							});
 						});
 
 						// Send push notification to other user
@@ -233,11 +119,11 @@ exports.createSocket = async (server) => {
 							match.users.find(u => u.toString() !== senderId.toString())
 						);
 						
-						if (otherUser.fcmTokens?.length > 0) {
+						if (otherUser?.fcmTokens?.length > 0) {
 							await sendPushNotification(
 								otherUser.fcmTokens.map(t => t.token),
 								'New Message',
-								text.substring(0, 100), // First 100 chars of message
+								content.substring(0, 100),
 								{
 									type: 'new_message',
 									matchId: match._id.toString(),
@@ -248,78 +134,29 @@ exports.createSocket = async (server) => {
 					} catch (error) {
 						console.error("Message sending error:", error);
 						socket.emit("messageStatus", {
-							clientMessageId,
 							status: 'failed',
 							error: error.message
 						});
 					}
 				});
 
-				socket.on("messageRead", async (data) => {
-					try {
-						const { messageId, userId } = data;
-						const message = await Message.findById(messageId);
-						
-						if (!message) return;
-
-						message.readBy.addToSet(userId);
-						await message.save();
-
-						io.to(message.sender.toString()).emit("messageReadStatus", {
-							messageId,
-							readBy: message.readBy
-						});
-					} catch (error) {
-						console.error("Message read status error:", error);
-					}
-				});
-
-				socket.on("messageDelivered", async (data) => {
-					try {
-						const { messageId, userId } = data;
-						const message = await Message.findById(messageId);
-						
-						if (!message) return;
-
-						message.status = 'delivered';
-						await message.save();
-
-						// Notify sender
-						io.to(message.sender.toString()).emit("messageStatus", {
-							messageId,
-							clientMessageId: message.clientMessageId,
-							status: 'delivered'
-						});
-					} catch (error) {
-						console.error("Message delivery status error:", error);
-					}
-				});
-
-				socket.on("disconnected", async (data) => {
-					try {
-						if (data?.userId) {
-							await activeUser.findOneAndUpdate(
-								{ userId: data.userId },
-								{
-									isLoggedin: false,
-									socketId: null,
-									lastActive: new Date()
-								}
-							);
-						}
-					} catch (error) {
-						console.error("Disconnection error:", error);
-					}
-				});
-
+				// Handle disconnection
 				socket.on("disconnect", async () => {
 					console.log(`Client disconnected: ${socket.id}`);
+					await activeUser.updateOne(
+						{ userId: socket.userId },
+						{ 
+							$set: {
+								isLoggedin: false,
+								lastActive: new Date()
+							}
+						}
+					);
 				});
-
-				resolve(socket);
 			});
+
+			resolve(io);
 		} catch (error) {
-			console.error("Error creating socket:", error);
 			reject(error);
 		}
 	});
